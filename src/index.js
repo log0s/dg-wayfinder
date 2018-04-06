@@ -2,7 +2,6 @@ import {} from 'dotenv/config';
 
 import http from 'http';
 import express from 'express';
-import {} from 'csv-express';
 import morgan from 'morgan';
 import bodyParser from 'body-parser';
 
@@ -15,6 +14,7 @@ app.server = http.createServer( app );
 app.use( morgan( 'dev' ) );
 
 app.use( bodyParser.json() );
+app.use( bodyParser.text({ type: 'text/csv' }));
 
 app.post( '/summary', summary );
 

@@ -1,4 +1,5 @@
 import moment from 'moment';
+import parser from 'csv-parse/lib/sync';
 import { arcgisToGeoJSON } from '@esri/arcgis-to-geojson-utils';
 
 import fetchParse from './lib/fetch-parse';
@@ -19,16 +20,18 @@ const baseQueryFormData = {
   geometryType: 'esriGeometryPoint'
 };
 
-// Use this to ensure standardized headers when using the csv-express headers functionality
-// by extending all response objects with blank fields for anything undefined
+// Use this to ensure standardized row format when creating the output csv by
+// extending all response objects with null fields. Also contains row headers
 const baseResponseObject = {
-  lat: '',
-  lng: '',
-  date: '',
-  dateRange: '',
-  images: '',
-  imageCount: '',
-  latestImage: ''
+  latitude: null,
+  longitude: null,
+  date: null,
+  startDate: null,
+  endDate: null,
+  images: null,
+  imageCount: null,
+  latestImage: null,
+  latestImageAcquired: null
 };
 
 const momentQueryFormatString = 'YYYY-MM-DD HH:mm:ss';
@@ -36,7 +39,7 @@ const momentQueryFormatString = 'YYYY-MM-DD HH:mm:ss';
 const parseFormData = formData => Object.entries( formData ).map( ([ key, value ]) => `${key}=${value}` ).join('&');
 
 const queryCatalogForPoint = point => {
-  const { lng: x, lat: y, date, dateRange } = point;
+  const { longitude: x, latitude: y, date, startDate, endDate } = point;
   const baseResponse = {
     ...baseResponseObject,
     ...point
@@ -69,16 +72,16 @@ const queryCatalogForPoint = point => {
     }));
   }
 
-  if ( dateRange ) {
-    const startDate = moment( dateRange[0] );
-    const endDate = moment( dateRange[1] );
+  if ( startDate && endDate ) {
+    const startDateMoment = moment( startDate );
+    const endDateMoment = moment( endDate );
 
     const options = {
       ...queryOptions,
       body: parseFormData({
         ...formData,
         returnCountOnly: true,
-        where: `collect_time_start >= '${startDate.format(momentQueryFormatString)}' AND collect_time_start <= '${endDate.format(momentQueryFormatString)}'`
+        where: `collect_time_start >= '${startDateMoment.format(momentQueryFormatString)}' AND collect_time_start <= '${endDateMoment.format(momentQueryFormatString)}'`
       })
     };
     return fetchParse( process.env.DG_CATALOG_API_URL, options ).then( result => ({
@@ -98,17 +101,28 @@ const queryCatalogForPoint = point => {
   };
   return fetchParse( process.env.DG_CATALOG_API_URL, options ).then( result => ({
     ...point,
-    latestImage: result.features[0]
+    ...result.features[0]
       ? { 
-          url: result.features[0].attributes.browse_url,
-          acquired: moment( result.features[0].attributes.collect_time_start ).format( 'dddd, MMMM Do YYYY, h:mm:ss a' )
+          latestImage: result.features[0].attributes.browse_url,
+          latestImageAcquired: moment( result.features[0].attributes.collect_time_start ).format( 'dddd MMMM Do YYYY h:mm:ss a' )
         }
-      : 'no result' 
+      : {
+          latestImage: 'no result',
+          latestImageAcquired: null
+        } 
   }));
 };
 const queryCatalogForPoints = points => Promise.all( points.map( point => queryCatalogForPoint( point ) ) );
 
-const parseCsv = csv => console.log( csv );
+const parseCsv = points => {
+  const parsed = parser( points );
+
+  const keys = parsed[0];
+  return parsed.slice( 1 ).map( pointRow => pointRow.reduce( ( point, attribute, index ) => {
+    if ( attribute != null ) point[keys[index]] = attribute;
+    return point;
+  }, {} ));
+};
 
 const summaryGeoJson = async ( res, points ) => {
   const results = await queryCatalogForPoints( points );
@@ -119,25 +133,31 @@ const summaryGeoJson = async ( res, points ) => {
 const summaryCsv = async ( res, points ) => {
   const results = await queryCatalogForPoints( points );
 
-  // Need to standardize row format to ensure proper headers and stringify objects
-  const parsedResults = results.map( ({ latestImage, ...result }) => ({
+  // Need to standardize row format to ensure matching columns
+  const parsedResults = results.map( ({ images, ...result }) => Object.values({
     ...baseResponseObject,
     ...result,
-    latestImage: JSON.stringify( latestImage ) || ''
-  }));
+    images: ( images && images.join(' | ') ) || null
+  }).join(','));
 
-  res.csv( parsedResults, true );
+  const responseCsv = [
+    Object.keys( baseResponseObject ),
+    ...parsedResults
+  ].join('\n');
+
+  res.header( 'Content-Type', 'text/csv' ).send( responseCsv );
 };
 
 const allowedFormats = [ 'json', 'csv' ];
 export function summary( req, res ) {
+  console.log(req.body);
   const { input: inputFormat, output: outputFormat } = req.query;
 
   if ( !inputFormat || !outputFormat || !allowedFormats.includes( inputFormat ) || !allowedFormats.includes( outputFormat ) ) {
     return res.status( 400 ).send( `input and output query params with value 'json' or 'csv' required` );
   }
 
-  const points = inputFormat === 'json' ? req.body.points : parseCsv( req.body );
+  const points = inputFormat === 'json' ? req.body.points : parseCsv( req.body, { relax: true } );
 
   return outputFormat === 'json' ? summaryGeoJson( res, points ) : summaryCsv( res, points );
 }
