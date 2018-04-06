@@ -21,7 +21,7 @@ const baseQueryFormData = {
 
 // Use this to ensure standardized row format when creating the output csv by
 // extending all response objects with null fields. Also contains row headers
-const baseResponseObject = {
+const baseSummaryResponseObject = {
   latitude: null,
   longitude: null,
   date: null,
@@ -37,10 +37,10 @@ const momentQueryFormatString = 'YYYY-MM-DD HH:mm:ss';
 
 const parseFormData = formData => Object.entries( formData ).map( ([ key, value ]) => `${key}=${value}` ).join('&');
 
-const queryCatalogForPoint = point => {
+const queryCatalogForPointSummary = point => {
   const { longitude: x, latitude: y, date, startDate, endDate } = point;
   const baseResponse = {
-    ...baseResponseObject,
+    ...baseSummaryResponseObject,
     ...point
   };
 
@@ -111,7 +111,48 @@ const queryCatalogForPoint = point => {
         } 
   }));
 };
-const queryCatalogForPoints = points => Promise.all( points.map( point => queryCatalogForPoint( point ) ) );
+const queryCatalogForSummary = points => Promise.all( points.map( point => queryCatalogForPointSummary( point ) ) );
+
+const queryCatalogForPointIdentifiers = point => {
+  const { longitude: x, latitude: y } = point;
+  
+  const options = {
+    method: 'POST',
+    headers: {
+      'x-api-key': process.env.DG_CATALOG_API_KEY,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: parseFormData({
+      f: 'json',
+      returnGeometry: false,
+      outFields: 'image_identifier',
+      spatialRel: 'esriSpatialRelContains',
+      geometryType: 'esriGeometryPoint',
+      geometry: JSON.stringify({
+        x,
+        y,
+        spatialReference: {
+          wkid: 4326
+        }
+      })
+    })
+  };
+  return fetchParse( process.env.DG_CATALOG_API_URL, options ).then( result => {
+    const { count, identifiers } = result.features.reduce( ( summary, feature ) => {
+      summary.count++;
+      summary.identifiers.push( feature.attributes.image_identifier );
+
+      return summary;
+    }, { count: 0, identifiers: [] } );
+
+    return {
+      ...point,
+      count,
+      identifiers
+    }
+  });
+};
+const queryCatalogForIdentifiers = points => Promise.all( points.map( point => queryCatalogForPointIdentifiers( point ) ) );
 
 const parseCsv = points => {
   const parsed = parser( points );
@@ -123,7 +164,7 @@ const parseCsv = points => {
   }, {} ));
 };
 
-const parseGeoJson = ({ features }) => {
+const parseGeoJsonSummary = ({ features }) => {
   return features.map( ({ properties: { date, startDate, endDate }, geometry: { coordinates } }) => ({
     longitude: coordinates[0],
     latitude: coordinates[1],
@@ -133,8 +174,15 @@ const parseGeoJson = ({ features }) => {
   }));
 };
 
+const parseGeoJsonIdentifiers = ({ features }) => {
+  return features.map( ({ geometry: { coordinates } }) => ({
+    longitude: coordinates[0],
+    latitude: coordinates[1]
+  }));
+}
+
 const summaryGeoJson = async ( res, points ) => {
-  const results = await queryCatalogForPoints( points );
+  const results = await queryCatalogForSummary( points );
 
   const parsedResults = {
     type: 'FeatureCollection',
@@ -152,17 +200,52 @@ const summaryGeoJson = async ( res, points ) => {
 };
 
 const summaryCsv = async ( res, points ) => {
-  const results = await queryCatalogForPoints( points );
+  const results = await queryCatalogForSummary( points );
 
   // Need to standardize row format to ensure matching columns
   const parsedResults = results.map( ({ images, ...result }) => Object.values({
-    ...baseResponseObject,
+    ...baseSummaryResponseObject,
     ...result,
     images: ( images && images.join(' | ') ) || null
   }).join(','));
 
   const responseCsv = [
-    Object.keys( baseResponseObject ),
+    Object.keys( baseSummaryResponseObject ),
+    ...parsedResults
+  ].join('\n');
+
+  res.header( 'Content-Type', 'text/csv' ).send( responseCsv );
+};
+
+const identifiersGeoJson = async ( res, points ) => {
+  const results = await queryCatalogForIdentifiers( points );
+
+  const parsedResults = {
+    type: 'FeatureCollection',
+    features: results.map( ({ longitude, latitude, ...properties }) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [ longitude, latitude ]
+      },
+      properties
+    }))
+  };
+
+  res.json( parsedResults );
+};
+
+const identifiersCsv = async ( res, points ) => {
+  const results = await queryCatalogForIdentifiers( points );
+
+  // Use tabs to separate identifiers since we are creating a CSV 
+  const parsedResults = results.map( ({ identifiers, ...result }) => Object.values({
+    ...result,
+    identifiers: identifiers.join('\t') 
+  }).join(',') );
+
+  const responseCsv = [
+    [ 'longitude', 'latitude', 'count', 'identifiers' ],
     ...parsedResults
   ].join('\n');
 
@@ -171,14 +254,25 @@ const summaryCsv = async ( res, points ) => {
 
 const allowedFormats = [ 'geojson', 'csv' ];
 export function summary( req, res ) {
-  console.log(req.body);
   const { input: inputFormat, output: outputFormat } = req.query;
 
   if ( !inputFormat || !outputFormat || !allowedFormats.includes( inputFormat ) || !allowedFormats.includes( outputFormat ) ) {
     return res.status( 400 ).send( `input and output query params with value 'geojson' or 'csv' required` );
   }
 
-  const points = inputFormat === 'geojson' ? parseGeoJson( req.body ) : parseCsv( req.body );
+  const points = inputFormat === 'geojson' ? parseGeoJsonSummary( req.body ) : parseCsv( req.body );
 
   return outputFormat === 'geojson' ? summaryGeoJson( res, points ) : summaryCsv( res, points );
+}
+
+export function identifiers( req, res ) {
+  const { input: inputFormat, output: outputFormat } = req.query;
+
+  if ( !inputFormat || !outputFormat || !allowedFormats.includes( inputFormat ) || !allowedFormats.includes( outputFormat ) ) {
+    return res.status( 400 ).send( `input and output query params with value 'geojson' or 'csv' required` );
+  }
+
+  const points = inputFormat === 'geojson' ? parseGeoJsonIdentifiers( req.body ) : parseCsv( req.body );
+
+  return outputFormat === 'geojson' ? identifiersGeoJson( res, points ) : identifiersCsv( res, points );
 }
