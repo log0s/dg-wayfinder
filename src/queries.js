@@ -1,6 +1,5 @@
 import moment from 'moment';
 import parser from 'csv-parse/lib/sync';
-import { arcgisToGeoJSON } from '@esri/arcgis-to-geojson-utils';
 
 import fetchParse from './lib/fetch-parse';
 
@@ -124,10 +123,32 @@ const parseCsv = points => {
   }, {} ));
 };
 
+const parseGeoJson = ({ features }) => {
+  return features.map( ({ properties: { date, startDate, endDate }, geometry: { coordinates } }) => ({
+    longitude: coordinates[0],
+    latitude: coordinates[1],
+    date,
+    startDate,
+    endDate
+  }));
+};
+
 const summaryGeoJson = async ( res, points ) => {
   const results = await queryCatalogForPoints( points );
 
-  res.json( results );
+  const parsedResults = {
+    type: 'FeatureCollection',
+    features: results.map( ({ longitude, latitude, ...properties }) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [ longitude, latitude ]
+      },
+      properties
+    }))
+  };
+
+  res.json( parsedResults );
 };
 
 const summaryCsv = async ( res, points ) => {
@@ -148,16 +169,16 @@ const summaryCsv = async ( res, points ) => {
   res.header( 'Content-Type', 'text/csv' ).send( responseCsv );
 };
 
-const allowedFormats = [ 'json', 'csv' ];
+const allowedFormats = [ 'geojson', 'csv' ];
 export function summary( req, res ) {
   console.log(req.body);
   const { input: inputFormat, output: outputFormat } = req.query;
 
   if ( !inputFormat || !outputFormat || !allowedFormats.includes( inputFormat ) || !allowedFormats.includes( outputFormat ) ) {
-    return res.status( 400 ).send( `input and output query params with value 'json' or 'csv' required` );
+    return res.status( 400 ).send( `input and output query params with value 'geojson' or 'csv' required` );
   }
 
-  const points = inputFormat === 'json' ? req.body.points : parseCsv( req.body, { relax: true } );
+  const points = inputFormat === 'geojson' ? parseGeoJson( req.body ) : parseCsv( req.body );
 
-  return outputFormat === 'json' ? summaryGeoJson( res, points ) : summaryCsv( res, points );
+  return outputFormat === 'geojson' ? summaryGeoJson( res, points ) : summaryCsv( res, points );
 }
