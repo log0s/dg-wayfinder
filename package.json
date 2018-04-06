@@ -1,7 +1,7 @@
 {
   "name": "dg-wayfinder",
   "version": "0.1.0",
-  "description": "Starter project for an ES6 RESTful Express API",
+  "description": "Simple API to return understandable search results from CSV style queries",
   "main": "dist",
   "scripts": {
     "dev": "nodemon -w src --exec \"babel-node src --presets es2015,stage-0\"",
@@ -26,17 +26,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/developit/express-es6-rest-api.git"
+    "url": "git+https://github.com/log0s/dg-wayfinder.git"
   },
-  "author": "Jason Miller <jason@developit.ca>",
+  "author": "Ryan Herman <ryan.b.herman@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "@esri/arcgis-to-geojson-utils": "1.2.0",
     "body-parser": "^1.13.3",
-    "compression": "^1.5.2",
-    "cors": "^2.7.1",
+    "csv-express": "1.2.2",
+    "dotenv": "5.0.1",
     "express": "^4.13.3",
+    "moment": "2.22.0",
     "morgan": "^1.8.0",
-    "resource-router-middleware": "^0.6.0"
+    "node-fetch": "2.1.2"
   },
   "devDependencies": {
     "babel-cli": "^6.9.0",
@@ -45,9 +47,5 @@
     "babel-preset-stage-0": "^6.5.0",
     "eslint": "^3.1.1",
     "nodemon": "^1.9.2"
-  },
-  "bugs": {
-    "url": "https://github.com/developit/express-es6-rest-api/issues"
-  },
-  "homepage": "https://github.com/developit/express-es6-rest-api#readme"
+  }
 }
