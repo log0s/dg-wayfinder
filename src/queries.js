@@ -186,14 +186,21 @@ const summaryGeoJson = async ( res, points ) => {
 
   const parsedResults = {
     type: 'FeatureCollection',
-    features: results.map( ({ longitude, latitude, ...properties }) => ({
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [ longitude, latitude ]
-      },
-      properties
-    }))
+    features: results.map( ({ longitude, latitude, ...properties }) => {
+      const parsedProperties = Object.entries( properties ).reduce( ( propertyObject, [ key, value ] ) => {
+        if ( value !== '' ) propertyObject[key] = value;
+        return propertyObject
+      }, {});
+
+      return {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [ longitude, latitude ]
+        },
+        properties: parsedProperties
+      }
+    })
   };
 
   res.json( parsedResults );
