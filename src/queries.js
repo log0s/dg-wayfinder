@@ -196,7 +196,7 @@ const summaryGeoJson = async ( res, points ) => {
         type: 'Feature',
         geometry: {
           type: 'Point',
-          coordinates: [ longitude, latitude ]
+          coordinates: [ parseFloat( longitude ), parseFloat( latitude ) ]
         },
         properties: parsedProperties
       }
@@ -213,7 +213,7 @@ const summaryCsv = async ( res, points ) => {
   const parsedResults = results.map( ({ images, ...result }) => Object.values({
     ...baseSummaryResponseObject,
     ...result,
-    images: ( images && images.join(' | ') ) || null
+    images: ( images && images.join && images.join('\t') ) || images || null
   }).join(','));
 
   const responseCsv = [
@@ -233,7 +233,7 @@ const identifiersGeoJson = async ( res, points ) => {
       type: 'Feature',
       geometry: {
         type: 'Point',
-        coordinates: [ longitude, latitude ]
+        coordinates: [ parseFloat( longitude ), parseFloat( latitude ) ]
       },
       properties
     }))
