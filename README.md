@@ -4,6 +4,23 @@ This API is a layer on top of the [DG Image Catalog API](https://discoverdigital
 
 -------------------------------------------------------------------------------------------------------
 
+## Development
+
+```
+# Initial local setup
+git clone git@github.com:log0s/dg-wayfinder.git
+cd dg-wayfinder
+npm install
+cp .env.template .env
+
+# Start local development server on http://localhost:8080
+npm run dev
+```
+
+Note that you will need to fill in your own DG Catalog API key in your `.env` file in order to use this API.
+
+-------------------------------------------------------------------------------------------------------
+
 ## Inputs
 
 Currently, CSV and GeoJSON are the only supported formats. The only allowed input geometries are points. The API supports querying any number of points at once, although the current limit for the Image Catalog API is 5000 queries per day. The 
