@@ -165,12 +165,12 @@ const parseCsv = points => {
 };
 
 const parseGeoJsonSummary = ({ features }) => {
-  return features.map( ({ properties: { date, startDate, endDate }, geometry: { coordinates } }) => ({
+  return features.map( ({ properties, geometry: { coordinates } }) => ({
     longitude: coordinates[0],
     latitude: coordinates[1],
-    date,
-    startDate,
-    endDate
+    date: properties && properties.date,
+    startDate: properties && properties.startDate,
+    endDate: properties && properties.endDate
   }));
 };
 
