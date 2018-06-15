@@ -8,13 +8,13 @@ This API is a layer on top of the [DG Image Catalog API](https://discoverdigital
 - [Development](#development)
 - [Inputs](#inputs)
 - [Outputs](#outputs)
-  - [identifiers](#identifiers)
-  - [summary](#summary)
+  - [/identifiers](#identifiers)
+  - [/summary](#summary)
 - [Examples](#examples)
-  - [identifiers GeoJSON](#identifiers-geojson)
-  - [identifiers CSV](#identifiers-csv)
-  - [summary GeoJSON](#summary-geojson)
-  - [summary CSV](#summary-csv)
+  - [/identifiers GeoJSON](#identifiers-geojson)
+  - [/identifiers CSV](#identifiers-csv)
+  - [/summary GeoJSON](#summary-geojson)
+  - [/summary CSV](#summary-csv)
 
 
 ## Development
