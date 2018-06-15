@@ -4,6 +4,19 @@ This API is a layer on top of the [DG Image Catalog API](https://discoverdigital
 
 -------------------------------------------------------------------------------------------------------
 
+## Table of Contents
+- [Development](#development)
+- [Inputs](#inputs)
+- [Outputs](#outputs)
+  - [/identifiers](#/identifiers)
+  - [/summary](#/summary)
+- [Examples](#examples)
+  - [/identifiers GeoJSON](#/identifiers-GeoJSON)
+  - [/identifiers CSV](#/identifiers-CSV)
+  - [/summary GeoJSON](#/summary-GeoJSON)
+  - [/summary CSV](#/summary-CSV)
+
+
 ## Development
 
 ```
@@ -89,9 +102,7 @@ latestImageAcquired - either a date string in the format 'day month numeric date
 
 ## Examples
 
-### /identifiers
-
-#### GeoJSON
+### /identifiers GeoJSON
 
 Input:
 ```
@@ -135,7 +146,7 @@ Output:
 }
 ```
 
-#### CSV
+### /identifiers CSV
 
 Input:
 ```
@@ -149,9 +160,7 @@ latitude, longitude, count, identifiers
 61.0137, 99.1967,,
 ```
 
-### /summary
-
-#### GeoJSON
+### /summary GeoJSON
 
 Input:
 ```
@@ -251,7 +260,7 @@ Output:
 }
 ```
 
-#### CSV
+### /summary CSV
 
 Input:
 ```
