@@ -8,13 +8,13 @@ This API is a layer on top of the [DG Image Catalog API](https://discoverdigital
 - [Development](#development)
 - [Inputs](#inputs)
 - [Outputs](#outputs)
-  - [/identifiers](#/identifiers)
-  - [/summary](#/summary)
+  - [identifiers](#identifiers)
+  - [summary](#summary)
 - [Examples](#examples)
-  - [/identifiers GeoJSON](#/identifiers-GeoJSON)
-  - [/identifiers CSV](#/identifiers-CSV)
-  - [/summary GeoJSON](#/summary-GeoJSON)
-  - [/summary CSV](#/summary-CSV)
+  - [identifiers GeoJSON](#identifiers-GeoJSON)
+  - [identifiers CSV](#identifiers-CSV)
+  - [summary GeoJSON](#summary-GeoJSON)
+  - [summary CSV](#summary-CSV)
 
 
 ## Development
@@ -72,14 +72,14 @@ Example: `https://<API URL>/identifiers?input=geojson&output=csv`
 
 ## Outputs
 
-### /identifiers
+### identifiers
 
 ```
 count: integer, the total number of images found
 identifiers: array of identifier strings (or tab separated string for CSV)
 ```
 
-### /summary
+### summary
 
 `date` mode:
 ```
@@ -102,7 +102,7 @@ latestImageAcquired - either a date string in the format 'day month numeric date
 
 ## Examples
 
-### /identifiers GeoJSON
+### identifiers GeoJSON
 
 Input:
 ```
@@ -146,7 +146,7 @@ Output:
 }
 ```
 
-### /identifiers CSV
+### identifiers CSV
 
 Input:
 ```
@@ -160,7 +160,7 @@ latitude, longitude, count, identifiers
 61.0137, 99.1967,,
 ```
 
-### /summary GeoJSON
+### summary GeoJSON
 
 Input:
 ```
@@ -260,7 +260,7 @@ Output:
 }
 ```
 
-### /summary CSV
+### summary CSV
 
 Input:
 ```
